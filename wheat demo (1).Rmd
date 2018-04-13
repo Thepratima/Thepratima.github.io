@@ -1,0 +1,168 @@
+---
+title: "Demo wheat"
+author: "Khagendra"
+date: "June 12, 2017"
+output: html_document
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+
+Demo<-read.csv(file='Wheat yield_Demo.csv')
+Demoselect<-Demo[,19:28]
+summary(Demoselect)
+```
+
+# Mean,SD, SE and CI ['g' grainwt/ m2]
+
+# Mean: Treatment and districtwise 
+```{r }
+library(ggplot2)
+library(Rmisc)
+subDatase <- summarySE(Demo, measurevar="Grainwt", groupvars=c("Treat","District"));subDatase
+```
+# Mean: Treatment, district and VDCwise
+```{r}
+subDatasevdc <- summarySE(Demo, measurevar="Grainwt", groupvars=c("Treat","District",'VDC'));subDatasevdc
+```
+# Mean: District and wheat varietywise 
+```{r cars}
+subDatasevar <- summarySE(Demo, measurevar="Grainwt", groupvars=c("District","wheat.variety"));subDatasevar
+```
+
+# Model fitting
+```{r}
+library(nlme)
+fit1<-lme(Grainwt~Treat+wheat.variety, random=~1|District/VDC/Farmer,data=Demo,method='REML')
+anova(fit1)
+```
+
+# Normality and homogenity of varience test
+```{r}
+par(mfrow=c(2,2))
+plot(residuals(fit1)~fitted(fit1),data=Demoselect)
+hist(residuals(fit1))# check the homogenity of varience
+qqnorm(residuals(fit1)) # check normality
+qqline(residuals(fit1))
+shapiro.test(residuals(fit1,type='response'))
+```
+
+
+#Pairwise comparision of treatment
+```{r}
+library(lsmeans)
+lsd<-lsmeans(fit1,pairwise~wheat.variety);lsd
+cld(lsd, Letters='abcd')
+```
+
+## Districtwise selection of data and means
+#Banke
+```{r}
+Ban<-Demoselect[Demo$District=='Banke',]
+Banke <- summarySE(Ban, measurevar="Grainwt", groupvars=c("Treat"));Banke
+```
+#Bardia
+```{r}
+Bar<-Demoselect[Demo$District=='Bardiya',]
+Bardia <- summarySE(Bar, measurevar="Grainwt", groupvars=c("Treat"));Bardia
+```
+#Kailali
+```{r}
+Kai<-Demoselect[Demo$District=='Kailali',]
+Kailali <- summarySE(Kai, measurevar="Grainwt", groupvars=c("Treat"));Kailali
+```
+#kanchanpur
+```{r}
+Kanch<-Demoselect[Demo$District=='Kanchanpur',]
+Kanchanpur<-summarySE(Kanch,measurevar = 'Grainwt',groupvars = c('Treat')); Kanchanpur
+```
+## Boxplot: Yield by districts 
+```{r}
+library(ggplot2)
+Plotall<-ggplot(Demo, aes(District,Grainwt))+
+  geom_boxplot()+labs(title=" ", x="Districts", y = "Wheat yield (g/m2)");Plotall
+
+## re-scaling Y axis
+Plotall+scale_y_continuous(breaks=c(0,200, 400, 600, 800),labels = c(0,2,4,6,8))+
+  labs(title=" ", x="Districts", y = "Wheat yield (Mg/ha)")
+```
+
+#Boxplot: Yield by Variety
+```{r}
+library(ggplot2)
+ggplot(Demo, aes(x=wheat.variety, y=Grainwt))+
+  geom_boxplot((aes(color=Treat)))+labs(title=" ", x="Variety", y = "Wheat yield (Mg/ha)")+
+  scale_y_continuous(breaks=c(0,200, 400, 600, 800),labels = c(0,2, 4, 6,8))
+```
+
+# Boxplot: Yield by districts along with treatments
+```{r}
+ggplot(Demo, aes(x=District, y=Grainwt))+
+  geom_boxplot(aes(color=Treat))+
+  labs(title=" ", x="Districts", y = "Wheat yield (g/m2)")+
+  scale_y_continuous(breaks=c(0,200, 400, 600, 800),labels = c(0,2, 4, 6,8))+
+  labs(title=" ", x="Districts", y = "Wheat yield (Mg/ha)")
+```
+  
+
+#Yield by variety along with treatments
+```{r }
+ggplot(Demo, aes(x=wheat.variety, y=Grainwt))+
+  geom_boxplot((aes(color=Treat)))+labs(title=" ", x="Variety", y = "Wheat yield (g/m2)")
+```
+
+# Yield distribution by treatment and VDCwise in Banke district
+```{r}
+Banke<-ggplot(Ban, aes(x=VDC, y=Grainwt))+
+  geom_boxplot(aes(color=Treat))+
+   labs(title=" ", x="Banke", y = "Wheat yield (g/m2)", label=".")+
+  theme(axis.text=element_text(size=rel(1)))+
+  
+  theme(axis.title.y = element_text(size = rel(1.2), angle = 90));Banke
+
+# re-scaling Y axis
+Banke+scale_y_continuous(breaks=c(0,200, 400, 600, 800),labels = c(0,2, 4, 6,8))+
+  labs(title=" ", x="Banke", y = "Wheat yield (Mg/ha)")
+```
+
+# Yield distribution by treatment and VDC in Bardia district
+```{r}
+Bardia<-ggplot(Bar, aes(x=VDC, y=Grainwt))+
+  geom_boxplot(aes(color=Treat))+
+  labs(title=" ", x="Bardia", y = "Wheat yield (g/m2)", label=".")
+  #stat_summary(fun.y = "mean", geom = "text", label=".", size= 20, color= "blue");Bardia
+ #geom_jitter(width = 0.2, aes(colour = factor(Treat))
+
+# re-scaling Y axis
+Bardia+scale_y_continuous(breaks=c(0,200, 400, 600, 800),labels = c(0,2, 4, 6,8))+
+  labs(title=" ", x="Bardia", y = "Wheat yield (Mg/ha)")
+```
+
+#Kailali district
+```{r}
+Kailali<-ggplot(Kai, aes(x=VDC, y=Grainwt))+
+  geom_boxplot(aes(color=Treat))+
+  labs(title=" ", x="Kailali", y = "Wheat yield (g/m2)", label=".")
+
+Kailali+scale_y_continuous(breaks=c(0,200, 400, 600, 800),labels = c(0,2, 4, 6,8))+
+  labs(title=" ", x="Kailali", y = "Wheat yield (Mg/ha)")
+```
+#Kanchanpur district
+```{r}
+Kanchanpur<-ggplot(Kanch, aes(x=VDC, y=Grainwt))+
+  geom_boxplot(aes(color=Treat))+
+  labs(title=" ", x="Kanchanpur", y = "Wheat yield (g/m2)", label=".")
+
+Kanchanpur+scale_y_continuous(breaks=c(0,200, 400, 600, 800),labels = c(0,2, 4, 6,8))+
+  labs(title=" ", x="Kanchanpur", y = "Wheat yield (Mg/ha)")
+  
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
